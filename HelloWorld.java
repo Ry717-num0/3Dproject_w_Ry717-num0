@@ -1,6 +1,4 @@
 import org.lwjgl.opengl.*;
-
-
 import static org.lwjgl.glfw.Callbacks.*;
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.ARBVertexArrayObject.glBindVertexArray;
@@ -14,125 +12,190 @@ import static org.lwjgl.system.MemoryUtil.*;
 
 public class HelloWorld {
     public long window;
-    double pi = 3.14159265358979323846264338327f;
-
-
-
-    double[] rotate(double[] vertices, double angle, double xposition, double yposition) {
-        while(angle>=360){
-            angle=angle-360;
-        }
-        while(angle<0){
-            angle=angle+360;
-        }
-
-        for (int i = 0; i < 9; i = i + 3) {
-            // not working
-            double newanglex = inversecos(absd(absd(vertices[i])-absd(xposition))/sqrt(sqr(absd(absd(vertices[i])-absd(xposition)))+sqr(absd(absd(vertices[i+1])-absd(yposition))), 25));
-            double totalanglex = newanglex+angle;
-            while(totalanglex>=360){
-                totalanglex=totalanglex-360;
-            }
-            while(totalanglex<0){
-                totalanglex=totalanglex-360;
-            }
-
-            System.out.println(totalanglex);
-            System.out.println(cos(totalanglex));
-            System.out.println(sin(totalanglex));
-            // working as intended after this point
-            vertices[i] = sqrt(sqr(absd(absd(vertices[i])-absd(xposition)))+sqr(absd(absd(vertices[i+1])-absd(yposition))), 25)*cos(totalanglex);
-            vertices[i+1] = sqrt(sqr(absd(absd(vertices[i])-absd(xposition)))+sqr(absd(absd(vertices[i+1])-absd(yposition))), 25)*sin(totalanglex);
-
+    double pi = 3.141592653589793;
+    // camera is 3 objects(coordinates of camera) cameraanglex x angle for camera cameraangley is y angle for camera
+    void render(double[] camera, double cameraanglex, double cameraangley, int fov, double[] vertice, int resolutionx, int resolutiony, double[] rgbstate){
+        double verticesanglex;
+        double startinganglex;
+        double angleofobjectx;
+        double verticesangley;
+        double angleofobjecty;
+        double startingangley;
+        double[] vertices = {0, 0, 0, 0, 0, 0, 0, 0, 0};
+        for(int i = 0; i<9; i=i+3){
+            angleofobjectx = inversesin((distbetween(vertice[i],camera[0]))/sqrt(sqr(distbetween(vertice[i], camera[0]))+sqr(distbetween(vertice[i+2], camera[2])), 25));//90 or 0, 0 has to become 450 and 90 has to become 150
+            startinganglex = cameraanglex-(0.5*fov);
+            verticesanglex = distbetweenforangle(startinganglex, angleofobjectx);
+            vertices[i] = (verticesanglex/fov)*resolutionx;
+            System.out.println("angleofobject");
+            System.out.println(angleofobjectx);
+            System.out.println("startingangle");
+            System.out.println(startinganglex);
+            System.out.println("verticesangle");
+            System.out.println(verticesanglex);
+            System.out.println("vertices[i]");
             System.out.println(vertices[i]);
-            System.out.println(vertices[i+1]);
-            System.out.println();
-
-
-
         }
-        return vertices;
+        System.out.println();
+        for(int i = 0; i<9; i=i+3){
+            angleofobjecty = inversesin((distbetween(vertice[i+1],camera[1]))/sqrt(sqr(distbetween(vertice[i+1], camera[1]))+sqr(distbetween(vertice[i+2], camera[2])), 25));//90 or 0, 0 has to become 450 and 90 has to become 150
+            startingangley = cameraangley-(0.5*fov);
+            verticesangley = distbetweenforangle(startingangley, angleofobjecty);
+            vertices[i+1] = (verticesangley/fov)*resolutiony;
+            System.out.println("angleofobject");
+            System.out.println(angleofobjecty);
+            System.out.println("startingangle");
+            System.out.println(startingangley);
+            System.out.println("verticesangle");
+            System.out.println(verticesangley);
+            System.out.println("vertices[i+1]");
+            System.out.println(vertices[i+1]);
+        }
+        System.out.println();
+        for(int i = 0; i<9; i=i+3){
+            vertices[i+2] = 0;
+        }
+        Trianglecreatefull(resolutionx, resolutiony, vertices, rgbstate);
+    }
+    double div(double op1, double op2){
+        double x = 0;
+        if(op2==0){
+            x = 0;
+        } else {
+            x = op1/op2;
+        }
+        return x;
+    }
+    double distbetween(double s, double t){
+        return s-t;
+    }
+    double distbetweenforangle(double s, double t){
+        double x = t+(-1*s);
+        return x;
+    }
+
+
+double returntoanglerange(double totalanglex){
+        while(totalanglex>=360){
+            totalanglex=totalanglex-360;
+        }
+        while(totalanglex<0){
+            totalanglex=totalanglex+360;
+        }
+        return totalanglex;
+    }
+    void sort(double[][] m, double[] camera){
+        double[][] minimum = new double[m.length][];
+        for(int mexes = 0; mexes<m.length; mexes++){
+            double[] maximum = m[0];
+            for(int mex = 0; mex<m.length; mex++){
+                if(distance(m[mex], camera) > distance(maximum, camera)){
+                    m[mex] = maximum;
+                }
+            }
+            minimum[(m.length-1)-mexes] = maximum;
+        }
+        m=minimum;
+    }
+    double distance(double[] x, double[] y) {
+
+        // gives furthest distance from camera
+        double[] yismxplusb = {0, 0, 0};
+        double rx = 0;
+        double rn = 0;
+        for (int i = 0; i < x.length; i = i + 3) {
+            rx++;
+            yismxplusb[(int) (i / rx)] = sqrt(sqr(distbetween(x[i], y[0])) + sqr(distbetween(x[i + 1], y[1])) + sqr(distbetween(x[i + 2], y[2])), 25);
+        }
+        for (int i = 0; i < yismxplusb.length; i++) {
+            if (yismxplusb[i] > rn) {
+                rn = yismxplusb[i];
+            }
+        }
+        return rn;
+    }
+    void addobject(boolean addorminusobject, double[][] group, double[][] zbuffer){
+        if(addorminusobject==true){
+            for(int x = 0; x<group.length; x++){
+                add(zbuffer, zbuffer.length+x, group[x]);
+            }
+        } else {
+            for(int x = 0; x<group.length; x++){
+                int xm = findinlist(zbuffer, group[x]);
+                pop(zbuffer, xm);
+            }
+        }
+
+    }
+    int findinlist(double[][] x, double[] xm){
+        int xmmm = 0;
+        for(int xmm = 0; xmm<x.length; xmm++){
+            if(x[xmm]==xm){
+                xmmm = xmm;
+            }
+        }
+        return xmmm;
+    }
+    void renderer(double[][] m, double[] camera, double cameraanglex, double cameraangley, int fov, int resolutionx, int resolutiony, double[][] rgbstate){
+        sort(m, camera);
+        for(int x = 0; x<m.length; x++){
+            render(camera, cameraanglex, cameraangley, fov,  m[x], resolutionx, resolutiony, rgbstate[x]);
+        }
+    }
+    double[][] add(double[][] m, int position, double[] item){
+        double[][] me = new double[m.length+1][];
+        for(int x = position; x<me.length; x++){
+            me[x+1] = me[x];
+        }
+        me[position] = item;
+        // adding code
+        return me;
+    }
+    double[][] pop(double[][] m, int position){
+        double[][] me = new double[m.length-1][];
+        boolean mm = false;
+        for(int x = 0; x<m.length; x++){
+            if(x==position){
+                me[x]=m[x+1];
+                mm = true;
+            }
+            else if(mm=true){
+                me[x]=m[x+1];
+            }
+            else{me[x]=m[x];}
+        }
+        return me;
     }
     public void run(){
+        double[] camera = {0, 0, 0};
         int resolutionx = 300;
         int resolutiony = 300;
-        init(resolutionx, resolutiony, "8/15/2026 AD");
-        double[] vertinint = {0, 0, 0, 0, 300, 0, 300, 0, 0};
-        double[] newvert = {0, 0, 0, 0, 30, 0, 300, 0, 0};
-        int[] rgbbg = {100, 100, 100};
-        double[] newverts = {300, 0, 0, 0, 30, 0, 300, 30, 0};
-        int[] rgbbgs = {100, 100, 100};
-        int[] rgbstate = {0, 250, 205};
-        double xm = 0;
-        double yud = 0;
-        double xrl = 0;
-
-        double jumpnumber = 0;
-        double jumpamount = 0;
-        boolean isjumping = false;
-        boolean isjumpingup = false;
+        init(resolutionx, resolutiony, "3D Render");
+        double[] vertices = {0, 0, 0, 0, 300, 0, 300, 0, 300};
+        double[] rgbstate = {0, 250, 205};
+        double[][] zbuffer = {vertices};
+        double[][] cbuffer = {rgbstate};
         while( glfwGetKey(window, GLFW_KEY_ESCAPE ) != GLFW_PRESS && !glfwWindowShouldClose(window)) {
-
-
-
             GL.createCapabilities();
-
-            wait(100);
-
-
             glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
             glClear(GL_COLOR_BUFFER_BIT);
+            renderer(zbuffer, camera, 0, 0, 90, 300, 300, cbuffer);
 
 
-
-            if(glfwGetKey(window, GLFW_KEY_LEFT)==1){
-                xrl=5;
-            }
-            if(glfwGetKey(window, GLFW_KEY_RIGHT)==1){
-                xrl=-5;
-            }
-            if(glfwGetKey(window, GLFW_KEY_UP)==1 && glfwGetKey(window, GLFW_KEY_UP)==0 & !isjumpingup){
-                isjumping=true;
-                yud=10;
-
-            }
-            if(isjumping){
-                isjumpingup=true;
-
-                yud=yud-1;
-                jumpamount=jumpamount+yud;
-                if(jumpamount==0){
-                    isjumpingup=false;
-                    yud=0;
-                    jumpamount=0;
-                    jumpnumber=0;
-                    isjumping=false;
-                }
-                System.out.println(jumpamount);
-                System.out.println(jumpnumber);
-                System.out.println(yud);
-            }
-
-
-
-            translation(xrl, yud, 0, vertinint);
-
-
-            // render
-
-            Trianglecreatefull(resolutionx, resolutiony, vertinint, rgbstate);
-            Trianglecreatefull(resolutionx, resolutiony, newvert, rgbbg);
-            Trianglecreatefull(resolutionx, resolutiony, newverts, rgbbgs);
-
-            xrl=0;
-
+            //if(glfwGetKey(window, GLFW_KEY_UP)==1){
+            //    vertices[0]=vertices[0]+10;
+              //  vertices[3]=vertices[3]+10;
+                //vertices[6]=vertices[6]+10;
+            //}
+            //if(glfwGetKey(window, GLFW_KEY_DOWN)==1){
+            //    vertices[0]=vertices[0]-10;
+            //    vertices[3]=vertices[3]-10;
+            //    vertices[6]=vertices[6]-10;
+            //}
 
             // Swap buffers
             glfwSwapBuffers(window);
-
             glfwPollEvents();
-
-
         }
         glfwFreeCallbacks(window);
         glfwDestroyWindow(window);
@@ -198,27 +261,10 @@ public class HelloWorld {
         int vertexbuffer = glGenBuffers();
         glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
         glBufferData(GL_ARRAY_BUFFER, vertices, GL_STATIC_DRAW);
-
-
-
-
-
-
-
-
-
-
-
         // Check if the ESC key was pressed or the window was closed
-
             // Clear the screen
-
-
-
             // Use our shader
             glUseProgram(programID);
-
-
             // 1rst attribute buffer : vertices
             glEnableVertexAttribArray(0);
             glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
@@ -230,32 +276,14 @@ public class HelloWorld {
                     0,                  // stride
                     0            // array buffer offset
             );
-
-
-            // 2nd attribute buffer : colors
-
-
-
             // Draw the triangle !
             glDrawArrays(GL_TRIANGLES, 0, 3); // 12*3 indices starting at 0 -> 12 triangles
-
-
-
-
-
-
         // Cleanup VBO and shader
         glDisableVertexAttribArray(0);
         glDeleteBuffers(vertexbuffer);
-
         glDeleteProgram(programID);
         glDeleteVertexArrays(VertexArrayID);
-
-
         // Close OpenGL window and terminate GLFW
-
-
-
     }
     float[] convert(double[] make, int resolutionx, int resolutiony){
         float[] vert  = {0, 0, 0, 0, 0, 0, 0, 0, 0};
@@ -267,7 +295,7 @@ public class HelloWorld {
         vert[7] = ((float) (make[7] * 2) /resolutiony)-1;
         return vert;
     }
-    void Trianglecreatefull(int resolutionx, int resolutiony, double[] vertices, int[] rgb){
+    void Trianglecreatefull(int resolutionx, int resolutiony, double[] vertices, double[] rgb){
         float[] vert  = convert(vertices, resolutionx, resolutiony);
         float[] rgbfloat = {0, 0, 0};
         rgbfloat[0] = (float) rgb[0]/255;
@@ -339,38 +367,16 @@ public class HelloWorld {
         }
 
         System.out.println(glGetShaderInfoLog(FragmentShaderID));
-
-
-
-
-
-
         // Link the program
         int ProgramID = glCreateProgram();
         glAttachShader(ProgramID, VertexShaderID);
         glAttachShader(ProgramID, FragmentShaderID);
-
         glLinkProgram(ProgramID);
-
-
         int status = glGetProgrami(ProgramID, GL_LINK_STATUS);
         if (status != GL_TRUE) {
             System.out.println("Error in linking");
         }
-
         System.out.println(glGetProgramInfoLog(ProgramID));
-
-
-
-
-
-
-
-
-
-
-
-
         glDetachShader(ProgramID, VertexShaderID);
         glDetachShader(ProgramID, FragmentShaderID);
 
@@ -448,21 +454,6 @@ public class HelloWorld {
             return 0;
         }
     }
-    double[] distancefrompoint(double[] vertices, double[] vertices2){
-        double[] distance = {0, 0, 0, 0, 0, 0, 0, 0, 0};
-        distance[0] = absd(vertices[0]-vertices2[0]);
-        distance[1] = absd(vertices[1]-vertices2[1]);
-        distance[2] = absd(vertices[2]-vertices2[2]);
-        distance[3] = absd(vertices[3]-vertices2[0]);
-        distance[4] = absd(vertices[4]-vertices2[1]);
-        distance[5] = absd(vertices[5]-vertices2[2]);
-        distance[6] = absd(vertices[6]-vertices2[0]);
-        distance[7] = absd(vertices[7]-vertices2[1]);
-        distance[8] = absd(vertices[8]-vertices2[2]);
-
-        return distance;
-
-    }
     double[] center(double[] vertices){
         double[] center = {0, 0, 0};
         double ymax = vertices[1];
@@ -524,27 +515,24 @@ public class HelloWorld {
 
 
     double inversesin(double y) {
-        double accuracy = 0;
-            for(double i = 0; i<=360; i++){
-                if(sin(i)>=y){
-                    accuracy=i;
-                    break;
+            double prev = 0;
+            for(double i = -90; i<=90; i++){
+                if(absd(distbetween(sin(i), y))<absd(distbetween(sin(prev), y))){
+                    prev=i;
                 }
             }
 
-        return accuracy;
-    }
+            return prev;
+        }
     double inversecos(double y) {
-        double accuracy = 0;
+       double prev = 0;
+       for(double i = 0; i<=360; i++){
+       if(absd(distbetween(cos(i), y))<absd(distbetween(cos(prev), y))){
+           prev=i;
+       }
+    }
 
-            for(double i = 0; i<=360; i++){
-                if(cos(i)<=y){
-                    accuracy=i;
-                    break;
-                }
-            }
-
-        return accuracy;
+        return prev;
     }
 
     int abs(int x) {
@@ -585,6 +573,7 @@ public class HelloWorld {
                 vertices[i] = vertices[i]+offsetx;
                 vertices[i+1] = vertices[i+1]+offsety;
                 vertices[i+2] = vertices[i+2]+offsetz;
+                size(offsetz, vertices, 100);
             }
     }
 
@@ -615,60 +604,91 @@ public class HelloWorld {
         return vertices;
     }
 
-
-
-    void stretch(int level, double[] vertices){
-        double xmax = vertices[0];
-        double xmin = vertices[0];
-        for (int i = 0; i <= 8; i = i + 3) {
-            if (xmax <= vertices[i]) {
-                xmax = vertices[i];
-            } else {
-                xmax = xmax;
-            }
+    double[] rotate(double[] vertices, double angle, double xposition, double yposition) {
+        while(angle>=360){
+            angle=angle-360;
         }
-        for (int i = 0; i <= 8; i = i + 3) {
-            if (xmin >= vertices[i]) {
-                xmin = vertices[i];
-            } else {
-                xmin = xmin;
-            }
-        }
-        float distancx = (float) (0.5 * (xmax - xmin));
-        vertices[0] = (absd(vertices[0] - distancx));
-        vertices[3] = (absd(vertices[3] - distancx));
-        vertices[6] = (absd(vertices[6] - distancx));
-        for(int i=0; i<=8; i=i+3){
-            double x = absd(vertices[i]-distancx);
-            double m = x/90;
-            vertices[i] = absd(vertices[i]-m*level);
+        while(angle<0){
+            angle=angle+360;
         }
 
 
+        for (int i = 0; i < 9; i = i + 3) {
+            // not working
+            double newanglex = inversesin((distbetween(vertices[i],xposition))/sqrt(sqr(distbetween(vertices[i], xposition))+sqr(distbetween(vertices[i+2], yposition)), 25));
+            double totalanglex = newanglex+angle;
+            returntoanglerange(totalanglex);
+
+            System.out.println(totalanglex);
+            System.out.println(cos(totalanglex));
+            System.out.println(sin(totalanglex));
+            // working as intended after this point
+            vertices[i] = sqrt(sqr(vertices[i]-xposition)+sqr(vertices[i+1]-yposition), 25)*cos(totalanglex);
+            vertices[i+1] = sqrt(sqr(vertices[i]-xposition)+sqr(vertices[i+1]-yposition), 25)*sin(totalanglex);
+
+            System.out.println(vertices[i]);
+            System.out.println(vertices[i+1]);
+            System.out.println();
+
+
+
+        }
+        return vertices;
     }
-    void squeeze(int level, double[] vertices) {
-        double ymax = vertices[1];
-        double ymin = vertices[1];
-        for (int i = 0; i <= 8; i = i + 3) {
-            if (ymax <= vertices[i + 1]) {
-                ymax = vertices[i + 1];
-            } else {
-                ymax = ymax;
+
+
+    double[] size(int level, double[] vertices, int amount){
+        vertices = stretchx(level, vertices, amount);
+        vertices = squeezey(level, vertices, amount);
+        vertices = stretchz(level, vertices, amount);
+        return vertices;
+    }
+    double[] stretchx(int level, double[] vertices, int amount){
+        double[] center = center(vertices);
+        double distancx = center[0];
+        for(int i=0; i<=8; i=i+3){
+            double x = absd(absd(vertices[i])-distancx);
+            double m = x/amount;
+            if(vertices[i]<center[0]){
+                vertices[i] = absd(absd(vertices[i])+(m*level));
             }
-        }
-        for (int i = 0; i <= 8; i = i + 3) {
-            if (ymin >= vertices[i + 1]) {
-                ymin = vertices[i + 1];
-            } else {
-                ymin = ymin;
+            if(vertices[i]>center[0]){
+                vertices[i] = absd(absd(vertices[i])-(m*level));
             }
+
+
         }
-        float distancy = (float) (0.5 * (ymax - ymin));
+        return vertices;
+    }
+    double[] squeezey(int level, double[] vertices, int amount) {
+        double[] center = center(vertices);
+        double distancy = center[1];
         for(int i=0; i<=8; i=i+3){
             double x = absd(vertices[i+1]-distancy);
-            double m = x/90;
-            vertices[i+1] = absd(vertices[i+1]-m*level);
+            double m = x/amount;
+            if(vertices[i+1]<=center[1]){
+                vertices[i+1] = absd(absd(vertices[i+1])+(m*level));
+            }
+            if(vertices[i+1]>center[1]){
+                vertices[i+1] = absd(absd(vertices[i+1])-(m*level));
+            }
         }
+        return vertices;
+    }
+    double[] stretchz(int level, double[] vertices, int amount){
+        double[] center = center(vertices);
+        double distancz = center[2];
+        for(int i=0; i<=8; i=i+3){
+            double x = absd(vertices[i+2]-distancz);
+            double m = x/amount;
+            if(vertices[i+2]<=center[2]){
+                vertices[i+2] = absd(absd(vertices[i+2])+(m*level));
+            }
+            if(vertices[i+2]>center[2]){
+                vertices[i+2] = absd(absd(vertices[i+2])-(m*level));
+            }
+        }
+        return vertices;
     }
 
     double sqr(double x) {
@@ -694,10 +714,7 @@ public class HelloWorld {
     }
 
     public static void main(String[] args){
+
         new HelloWorld().run();
     }
 }
-
-
-
-
