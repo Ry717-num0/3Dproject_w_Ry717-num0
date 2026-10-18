@@ -27,31 +27,13 @@ public class HelloWorld {
             startinganglex = cameraanglex-(0.5*fov);
             verticesanglex = distbetweenforangle(startinganglex, angleofobjectx);
             vertices[i] = (verticesanglex/fov)*resolutionx;
-            System.out.println("angleofobject");
-            System.out.println(angleofobjectx);
-            System.out.println("startingangle");
-            System.out.println(startinganglex);
-            System.out.println("verticesangle");
-            System.out.println(verticesanglex);
-            System.out.println("vertices[i]");
-            System.out.println(vertices[i]);
         }
-        System.out.println();
         for(int i = 0; i<9; i=i+3){
             angleofobjecty = inversesin((distbetween(vertice[i+1],camera[1]))/sqrt(sqr(distbetween(vertice[i+1], camera[1]))+sqr(distbetween(vertice[i+2], camera[2])), 25));//90 or 0, 0 has to become 450 and 90 has to become 150
             startingangley = cameraangley-(0.5*fov);
             verticesangley = distbetweenforangle(startingangley, angleofobjecty);
             vertices[i+1] = (verticesangley/fov)*resolutiony;
-            System.out.println("angleofobject");
-            System.out.println(angleofobjecty);
-            System.out.println("startingangle");
-            System.out.println(startingangley);
-            System.out.println("verticesangle");
-            System.out.println(verticesangley);
-            System.out.println("vertices[i+1]");
-            System.out.println(vertices[i+1]);
         }
-        System.out.println();
         for(int i = 0; i<9; i=i+3){
             vertices[i+2] = 0;
         }
@@ -234,7 +216,7 @@ double returntoanglerange(double totalanglex){
         // Ensure we can capture the escape key being pressed below
         glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
     }
-    public void trianglemaker(float rval, float gval, float bval, float[] vertices){
+    public void trianglemaker(float[] color, float[] vertices){
         GL.createCapabilities();
         // Dark blue background
 
@@ -243,12 +225,8 @@ double returntoanglerange(double totalanglex){
         int VertexArrayID = glGenVertexArrays();
         glBindVertexArray(VertexArrayID);
 
-        String rtrue = Float.toString(rval);
-        String gtrue = Float.toString(gval);
-        String btrue = Float.toString(bval);
-
         // Create and compile our GLSL program from the shaders
-        int programID = LoadShaders(rtrue, gtrue, btrue);
+        int programID = LoadShaders();
 
 
         // Get a handle for our "MVP" uniform
@@ -278,8 +256,29 @@ double returntoanglerange(double totalanglex){
             );
             // Draw the triangle !
             glDrawArrays(GL_TRIANGLES, 0, 3); // 12*3 indices starting at 0 -> 12 triangles
+        int colorbuffer = glGenBuffers();
+        glBindBuffer(GL_ARRAY_BUFFER, colorbuffer);
+        glBufferData(GL_ARRAY_BUFFER, color, GL_STATIC_DRAW);
+        // Check if the ESC key was pressed or the window was closed
+        // Clear the screen
+        // Use our shader
+        glUseProgram(programID);
+        // 1rst attribute buffer : vertices
+        glEnableVertexAttribArray(1);
+        glBindBuffer(GL_ARRAY_BUFFER, colorbuffer);
+        glVertexAttribPointer(
+                1,                  // attribute. No particular reason for 0, but must match the layout in the shader.
+                3,                  // size
+                GL_FLOAT,           // type
+                false,           // normalized?
+                0,                  // stride
+                0            // array buffer offset
+        );
+        // Draw the triangle !
+        glDrawArrays(GL_TRIANGLES, 0, 3); // 12*3 indices starting at 0 -> 12 triangles
         // Cleanup VBO and shader
         glDisableVertexAttribArray(0);
+        glDisableVertexAttribArray(1);
         glDeleteBuffers(vertexbuffer);
         glDeleteProgram(programID);
         glDeleteVertexArrays(VertexArrayID);
@@ -295,22 +294,22 @@ double returntoanglerange(double totalanglex){
         vert[7] = ((float) (make[7] * 2) /resolutiony)-1;
         return vert;
     }
-    void Trianglecreatefull(int resolutionx, int resolutiony, double[] vertices, double[] rgb){
+    void Trianglecreatefull(int resolutionx, int resolutiony, double[] vertices, double[] rgbs){
         float[] vert  = convert(vertices, resolutionx, resolutiony);
-        float[] rgbfloat = {0, 0, 0};
-        rgbfloat[0] = (float) rgb[0]/255;
-        rgbfloat[1] = (float) rgb[1]/255;
-        rgbfloat[2] = (float) rgb[2]/255;
-        trianglemaker(rgbfloat[0], rgbfloat[1], rgbfloat[2], vert);
+        float[] rgb = {0, 0, 0};
+        rgb[0] = ((float) (rgbs[0]));
+        rgb[1] = ((float) (rgbs[1]));
+        rgb[2] = ((float) (rgbs[2]));
+        trianglemaker(rgb, vert);
     }// Check if the ESC key was pressed or the window was closed
 
 
 
 
-    int LoadShaders(String redvalue, String greenvalue, String bluevalue){
+    int LoadShaders(){
 
 
-        // Create the shaders
+        // Create the sders
         GL.createCapabilities();
         // Read the Vertex Shader code from the file
         String VertexShaderCode = """
@@ -321,10 +320,12 @@ double returntoanglerange(double totalanglex){
                 #extension GL_ARB_separate_shader_objects : enable
                 
                 layout(location = 0) in vec3 vertexPosition_modelspace;
-                
+                layout(location = 1) in vec3 colors;
+                out vec3 colors2;
                 void main(){
                       gl_Position.xyz = vertexPosition_modelspace;
                       gl_Position.w = 1.0;
+                      colors2 = colors;
                     }
                 """
                 ;
@@ -333,11 +334,13 @@ double returntoanglerange(double totalanglex){
 
 
         // Read the Fragment Shader code from the file
-        String FragmentShaderCode = "#version 140\n" +
-                "out vec3 color;\n" +
-                "void main(){\n" +
-                "  color = vec3(" + redvalue + ", " + greenvalue + ", " + bluevalue + ");\n" +
-                "}";
+        String FragmentShaderCode = """
+                #version 140
+                out vec3 color;
+                in vec3 colors2;
+                void main(){
+                  color = colors2;
+                }""";
 
 
 
