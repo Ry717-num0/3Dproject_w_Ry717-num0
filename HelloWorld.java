@@ -12,7 +12,12 @@ import static org.lwjgl.system.MemoryUtil.*;
 
 public class HelloWorld {
     public long window;
-    double pi = 3.141592653589793;
+    final double pi = 3.141592653589793;
+    final double e = 2.18281828;
+    final double avogadros_number = 6.022*(10^23);
+    final double G = 6.6743*(10^-11);
+    final double K = 8.99*(10^9);
+    final double gforce = 9.81;
     // camera is 3 objects(coordinates of camera) cameraanglex x angle for camera cameraangley is y angle for camera
     void render(double[] camera, double cameraanglex, double cameraangley, int fov, double[] vertice, int resolutionx, int resolutiony, double[] rgbstate){
         double verticesanglex;
@@ -154,30 +159,35 @@ double returntoanglerange(double totalanglex){
         int resolutiony = 300;
         init(resolutionx, resolutiony, "3D Render");
         double[] vertices = {0, 0, 0, 0, 300, 0, 300, 0, 300};
-        double[] rgbstate = {0, 250, 205};
+        double[] rgbstate = {1, 0.5, 1};
         double[][] zbuffer = {vertices};
         double[][] cbuffer = {rgbstate};
         while( glfwGetKey(window, GLFW_KEY_ESCAPE ) != GLFW_PRESS && !glfwWindowShouldClose(window)) {
             GL.createCapabilities();
-            glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-            glClear(GL_COLOR_BUFFER_BIT);
-            renderer(zbuffer, camera, 0, 0, 90, 300, 300, cbuffer);
+            glfwSetTime(0);
+
+                glClearColor(0.1f, 0.0f, 0.0f, 0.0f);
+                glClear(GL_COLOR_BUFFER_BIT);
+                renderer(zbuffer, camera, 0, 0, 90, resolutionx, resolutiony, cbuffer);
 
 
-            //if(glfwGetKey(window, GLFW_KEY_UP)==1){
-            //    vertices[0]=vertices[0]+10;
-              //  vertices[3]=vertices[3]+10;
+                //if(glfwGetKey(window, GLFW_KEY_UP)==1){
+                //    vertices[0]=vertices[0]+10;
+                //  vertices[3]=vertices[3]+10;
                 //vertices[6]=vertices[6]+10;
-            //}
-            //if(glfwGetKey(window, GLFW_KEY_DOWN)==1){
-            //    vertices[0]=vertices[0]-10;
-            //    vertices[3]=vertices[3]-10;
-            //    vertices[6]=vertices[6]-10;
-            //}
+                //}
+                //if(glfwGetKey(window, GLFW_KEY_DOWN)==1){
+                //    vertices[0]=vertices[0]-10;
+                //    vertices[3]=vertices[3]-10;
+                //    vertices[6]=vertices[6]-10;
+                //}
 
-            // Swap buffers
-            glfwSwapBuffers(window);
-            glfwPollEvents();
+                // Swap buffers
+                glfwSwapBuffers(window);
+                glfwPollEvents();
+
+            System.out.println(1/glfwGetTime()+" fps");
+
         }
         glfwFreeCallbacks(window);
         glfwDestroyWindow(window);
@@ -242,7 +252,7 @@ double returntoanglerange(double totalanglex){
         // Check if the ESC key was pressed or the window was closed
             // Clear the screen
             // Use our shader
-            glUseProgram(programID);
+
             // 1rst attribute buffer : vertices
             glEnableVertexAttribArray(0);
             glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
@@ -254,31 +264,16 @@ double returntoanglerange(double totalanglex){
                     0,                  // stride
                     0            // array buffer offset
             );
-            // Draw the triangle !
-            glDrawArrays(GL_TRIANGLES, 0, 3); // 12*3 indices starting at 0 -> 12 triangles
-        int colorbuffer = glGenBuffers();
-        glBindBuffer(GL_ARRAY_BUFFER, colorbuffer);
-        glBufferData(GL_ARRAY_BUFFER, color, GL_STATIC_DRAW);
-        // Check if the ESC key was pressed or the window was closed
-        // Clear the screen
-        // Use our shader
+        int vertexColorLocation = glGetUniformLocation(programID, "colorse2");
         glUseProgram(programID);
-        // 1rst attribute buffer : vertices
-        glEnableVertexAttribArray(1);
-        glBindBuffer(GL_ARRAY_BUFFER, colorbuffer);
-        glVertexAttribPointer(
-                1,                  // attribute. No particular reason for 0, but must match the layout in the shader.
-                3,                  // size
-                GL_FLOAT,           // type
-                false,           // normalized?
-                0,                  // stride
-                0            // array buffer offset
-        );
+        glUniform4f(vertexColorLocation, color[0], color[1], color[2], 1.0f);
+
+
+
         // Draw the triangle !
         glDrawArrays(GL_TRIANGLES, 0, 3); // 12*3 indices starting at 0 -> 12 triangles
         // Cleanup VBO and shader
         glDisableVertexAttribArray(0);
-        glDisableVertexAttribArray(1);
         glDeleteBuffers(vertexbuffer);
         glDeleteProgram(programID);
         glDeleteVertexArrays(VertexArrayID);
@@ -296,7 +291,7 @@ double returntoanglerange(double totalanglex){
     }
     void Trianglecreatefull(int resolutionx, int resolutiony, double[] vertices, double[] rgbs){
         float[] vert  = convert(vertices, resolutionx, resolutiony);
-        float[] rgb = {0, 0, 0};
+        float[] rgb = {0, 0, 0, 0, 0, 0, 0, 0, 0};
         rgb[0] = ((float) (rgbs[0]));
         rgb[1] = ((float) (rgbs[1]));
         rgb[2] = ((float) (rgbs[2]));
@@ -320,12 +315,8 @@ double returntoanglerange(double totalanglex){
                 #extension GL_ARB_separate_shader_objects : enable
                 
                 layout(location = 0) in vec3 vertexPosition_modelspace;
-                layout(location = 1) in vec3 colors;
-                out vec3 colors2;
                 void main(){
-                      gl_Position.xyz = vertexPosition_modelspace;
-                      gl_Position.w = 1.0;
-                      colors2 = colors;
+                      gl_Position = vec4(vertexPosition_modelspace, 1.0);
                     }
                 """
                 ;
@@ -336,10 +327,10 @@ double returntoanglerange(double totalanglex){
         // Read the Fragment Shader code from the file
         String FragmentShaderCode = """
                 #version 140
-                out vec3 color;
-                in vec3 colors2;
+                out vec4 color;
+                uniform vec4 colorse2;
                 void main(){
-                  color = colors2;
+                  color = colorse2;
                 }""";
 
 
